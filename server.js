@@ -1,12 +1,13 @@
-const express = require("express");
-const app = express();
+app.get("/webhook", (req, res) => {
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
 
-app.get("/", (req, res) => {
-  res.send("Server is running 🚀");
-});
-
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
+  if (mode && token) {
+    if (mode === "subscribe" && token === "SyantiBot123") {
+      res.status(200).send(challenge);
+    } else {
+      res.sendStatus(403);
+    }
+  }
 });
