@@ -4,12 +4,12 @@ const axios = require("axios");
 const app = express();
 app.use(express.json());
 
-// ضع هنا نفس Verify Token اللي هتحطه في Meta
+// كلمة التحقق (Verify Token) اللي هتحطها في Meta Dashboard
 const VERIFY_TOKEN = "MokhtarBot123";
 
-// قراءة متغيرات البيئة (Access Token و Phone Number ID)
-const ACCESS_TOKEN = process.env.ACCESS_TOKEN; // من Render
-const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID; // من Meta
+// قراءة متغيرات البيئة (Access Token و Phone Number ID) من Render
+const ACCESS_TOKEN = process.env.ACCESS_TOKEN; 
+const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID; 
 
 // Endpoint للتحقق من Webhook
 app.get("/webhook", (req, res) => {
@@ -29,7 +29,7 @@ app.get("/webhook", (req, res) => {
   }
 });
 
-// Endpoint لاستقبال الرسائل
+// Endpoint لاستقبال الرسائل والردود
 app.post("/webhook", async (req, res) => {
   try {
     const entries = req.body.entry;
@@ -41,8 +41,8 @@ app.post("/webhook", async (req, res) => {
         const messages = change.value.messages;
         if (messages) {
           for (const message of messages) {
-            const from = message.from; // رقم المرسل
-            const text = message.text.body; // نص الرسالة
+            const from = message.from;
+            const text = message.text.body;
             console.log(`Message from ${from}: ${text}`);
 
             // مثال على الرد الذكي
@@ -67,7 +67,6 @@ app.post("/webhook", async (req, res) => {
         }
       }
     }
-
     res.sendStatus(200);
   } catch (error) {
     console.error("Error processing message:", error);
