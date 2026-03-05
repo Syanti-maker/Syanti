@@ -1,114 +1,183 @@
-// server.js
 const express = require("express");
 const axios = require("axios");
+
 const app = express();
 app.use(express.json());
 
-// Verify Token و Environment Variables
-const VERIFY_TOKEN = "MokhtarBot123";
-const ACCESS_TOKEN = process.env.ACCESS_TOKEN; 
+const TOKEN = process.env.ACCESS_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
+const VERIFY_TOKEN = "syanti_verify";
 
-// Menu Flow
-const menu = {
-  start: {
-    question: "أهلاً! تحب تبدأ بأي خدمة؟",
-    options: { "1": "خدمة تنظيف", "2": "خدمة صيانة", "3": "مساعدة عامة" },
-    next: { "1": "cleaning", "2": "maintenance", "3": "support" }
-  },
-  cleaning: {
-    question: "نوع التنظيف اللي محتاجه؟",
-    options: { "1": "تنظيف عميق", "2": "تنظيف عادي" },
-    next: { "1": "end", "2": "end" }
-  },
-  maintenance: {
-    question: "نوع الصيانة اللي محتاجه؟",
-    options: { "1": "سباكة", "2": "كهرباء" },
-    next: { "1": "end", "2": "end" }
-  },
-  support: {
-    question: "اكتب مشكلتك وأنا أحاول أساعدك.",
-    options: {},
-    next: { any: "end" }
-  },
-  end: {
-    question: "شكراً لك، تم تسجيل طلبك وسيتم التواصل معك.",
-    options: {},
-    next: {}
-  }
-};
+let users = {};
 
-// تتبع حالة كل عميل
-let sessions = {};
-
-// Webhook verify
 app.get("/webhook", (req, res) => {
-  const mode = req.query["hub.mode"];
-  const token = req.query["hub.verify_token"];
-  const challenge = req.query["hub.challenge"];
-
-  if (mode && token) {
-    if (mode === "subscribe" && token === VERIFY_TOKEN) {
-      console.log("WEBHOOK_VERIFIED");
-      res.status(200).send(challenge);
-    } else {
-      res.sendStatus(403);
-    }
-  } else {
-    res.sendStatus(400);
-  }
+if (
+req.query["hub.mode"] === "subscribe" &&
+req.query["hub.verify_token"] === VERIFY_TOKEN
+) {
+res.send(req.query["hub.challenge"]);
+} else {
+res.sendStatus(403);
+}
 });
 
-// استقبال الرسائل والرد حسب Flow
 app.post("/webhook", async (req, res) => {
-  try {
-    const messages = req.body.entry[0].changes[0].value.messages;
-    if (!messages) return res.sendStatus(200);
 
-    for (const message of messages) {
-      const from = message.from;
-      const text = message.text.body.trim();
+try {
 
-      // تحديد حالة العميل
-      if (!sessions[from]) sessions[from] = "start";
-      let current = sessions[from];
+const message =
+req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
 
-      // تحديد السؤال القادم بناءً على اختيار العميل
-      const step = menu[current];
-      let nextStep = step.next[text] || step.next["any"];
-      if (!nextStep) nextStep = "start"; // fallback
+if (!message) return res.sendStatus(200);
 
-      sessions[from] = nextStep;
-      const nextMenu = menu[nextStep];
+const phone = message.from;
 
-      // تجهيز الرد
-      let replyText = nextMenu.question;
-      if (nextMenu.options && Object.keys(nextMenu.options).length > 0) {
-        replyText += "\n";
-        for (const key in nextMenu.options) {
-          replyText += `${key}: ${nextMenu.options[key]}\n`;
-        }
-      }
+if (message.type === "text") {
+sendMainMenu(phone);
+}
 
-      // إرسال الرد للواتساب
-      await axios.post(
-        `https://graph.facebook.com/v17.0/${PHONE_NUMBER_ID}/messages`,
-        {
-          messaging_product: "whatsapp",
-          to: from,
-          text: { body: replyText }
-        },
-        { headers: { Authorization: `Bearer ${ACCESS_TOKEN}` } }
-      );
-    }
+if (message.type === "interactive") {
 
-    res.sendStatus(200);
-  } catch (error) {
-    console.error("Error processing message:", error);
-    res.sendStatus(500);
-  }
+const id = message.interactive.list_reply.id;
+
+users[phone] = { service: id };
+
+sendSubMenu(phone, id);
+
+}
+
+} catch (err) {
+console.log(err);
+}
+
+res.sendStatus(200);
+
 });
 
-// تشغيل السيرفر
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Server running on port " + PORT));
+async function sendMainMenu(phone) {
+
+await axios.post(
+`https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`,
+{
+messaging_product: "whatsapp",
+to: phone,
+type: "interactive",
+interactive: {
+type: "list",
+body: {
+text: "مرحباً بك في صيانتي 🛠\nاختر الخدمة"
+},
+action: {
+button: "اختيار الخدمة",
+sections: [
+{
+title: "الخدمات",
+rows: [
+{ id: "plumbing", title: "سباكة" },
+{ id: "electric", title: "كهرباء" },
+{ id: "ac", title: "تكييفات" },
+{ id: "carpenter", title: "نجارة" },
+{ id: "iron", title: "حدادة" },
+{ id: "aluminum", title: "المونيوم" },
+{ id: "garden", title: "تقليم الحديقة" },
+{ id: "clean", title: "نظافة منزلية" }
+]
+}
+]
+}
+}
+},
+{
+headers: {
+Authorization: `Bearer ${TOKEN}`
+}
+}
+);
+
+}
+
+async function sendSubMenu(phone, service) {
+
+let rows = [];
+
+if (service === "plumbing") {
+
+rows = [
+{ id: "tap", title: "تغيير حنفية" },
+{ id: "siphon", title: "إصلاح سيفون" },
+{ id: "leak", title: "تسريب مياه" },
+{ id: "drain", title: "تسليك صرف" },
+{ id: "heater", title: "تركيب سخان" }
+];
+
+}
+
+if (service === "electric") {
+
+rows = [
+{ id: "lamp", title: "تركيب نجف" },
+{ id: "switch", title: "تركيب مفاتيح" },
+{ id: "fan", title: "تركيب مروحة" },
+{ id: "problem", title: "عطل كهرباء" }
+];
+
+}
+
+if (service === "ac") {
+
+rows = [
+{ id: "freon", title: "شحن فريون" },
+{ id: "cleanac", title: "تنظيف تكييف" },
+{ id: "installac", title: "تركيب تكييف" },
+{ id: "repairac", title: "صيانة تكييف" }
+];
+
+}
+
+if (service === "clean") {
+
+rows = [
+{ id: "clean1", title: "شقة أقل من 100 متر" },
+{ id: "clean2", title: "شقة 100 الى 150 متر" },
+{ id: "clean3", title: "3 غرف وصالة" },
+{ id: "clean4", title: "4 غرف وصالة" },
+{ id: "clean5", title: "دوبلكس" },
+{ id: "clean6", title: "فيلا" }
+];
+
+}
+
+await axios.post(
+`https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`,
+{
+messaging_product: "whatsapp",
+to: phone,
+type: "interactive",
+interactive: {
+type: "list",
+body: {
+text: "اختر الخدمة المطلوبة"
+},
+action: {
+button: "عرض الخيارات",
+sections: [
+{
+title: "الخيارات",
+rows: rows
+}
+]
+}
+}
+},
+{
+headers: {
+Authorization: `Bearer ${TOKEN}`
+}
+}
+);
+
+}
+
+app.listen(3000, () => {
+console.log("server running");
+});
