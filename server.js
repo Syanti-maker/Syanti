@@ -4,7 +4,7 @@ app.get("/webhook", (req, res) => {
   const challenge = req.query["hub.challenge"];
 
   if (mode && token) {
-    if (mode === "subscribe" && token === "SyantiBot123") {
+    if (mode === "subscribe" && token === "SyantiiBot123") {
       res.status(200).send(challenge);
     } else {
       res.sendStatus(403);
