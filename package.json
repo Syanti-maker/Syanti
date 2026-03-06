@@ -1,18 +1,17 @@
-{
-  "name": "syanti-bot",
-  "version": "1.0.0",
-  "description": "Syanti WhatsApp Bot",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "axios": "^1.5.0",
-    "google-spreadsheet": "3.3.0",
-    "body-parser": "^1.20.2"
-  },
-  "engines": {
-    "node": ">=20.0.0"
-  }
+const { GoogleSpreadsheet } = require('google-spreadsheet');
+const creds = require('./service-account.json');
+
+const doc = new GoogleSpreadsheet('1GVugJc_YfcZnurRxqW4ludj6yShuIpqrT1bq9IXDs4c');
+
+async function accessSheet() {
+  await doc.useServiceAccountAuth(creds);
+  await doc.loadInfo();
+  const sheet = doc.sheetsByIndex[0];
+
+  await sheet.addRow({
+    name: "test",
+    phone: "010000000"
+  });
 }
+
+accessSheet();
