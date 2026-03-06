@@ -1,17 +1,11 @@
-const { GoogleSpreadsheet } = require('google-spreadsheet');
-const creds = require('./service-account.json');
-
-const doc = new GoogleSpreadsheet(1GVugJc_YfcZnurRxqW4ludj6yShuIpqrT1bq9IXDs4c);
-
-async function accessSheet() {
-  await doc.useServiceAccountAuth(creds);
-  await doc.loadInfo();
-  const sheet = doc.sheetsByIndex[0];
-
-  await sheet.addRow({
-    name: "test",
-    phone: "010000000"
-  });
+{
+  "name": "sheet-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "google-spreadsheet": "^4.1.1"
+  }
 }
-
-accessSheet();
