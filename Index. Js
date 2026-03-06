@@ -1,1 +1,18 @@
+const { GoogleSpreadsheet } = require("google-spreadsheet");
+const creds = require("./service-account.json");
 
+const SHEET_ID = "1GVugJc_YfcZnurRxqW4ludj6yShuIpqrT1bq9IXDs4c";
+
+async function start() {
+
+  const doc = new GoogleSpreadsheet(SHEET_ID);
+
+  await doc.useServiceAccountAuth(creds);
+
+  await doc.loadInfo();
+
+  console.log("Connected to sheet:", doc.title);
+
+}
+
+start();
